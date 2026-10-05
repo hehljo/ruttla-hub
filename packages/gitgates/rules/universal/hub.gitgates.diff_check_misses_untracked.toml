@@ -1,0 +1,72 @@
+format = "ruttla-rule/0"
+id = "hub.gitgates.diff_check_misses_untracked"
+title = "git diff --check ohne --cached sieht neue Dateien nicht"
+platform = "universal"
+severity = "warning"
+references = ["https://git-scm.com/docs/git-diff"]
+rationale = """
+`git diff --check` vergleicht Arbeitsbaum und Index. Eine neue, noch nicht
+hinzugefügte Datei steht in keinem von beiden — der Schritt endet mit Exit 0,
+ohne sie gelesen zu haben. Ein Prüfschritt über neue Dateien ist damit grün,
+egal was drinsteht."""
+
+[scope]
+extensions = [".sh", ".bash", ".zsh", ".ps1", ".yml", ".yaml"]
+unit_label = "Skript- und Workflow-Dateien"
+
+[match]
+per_line = true
+pattern = '\bgit\s+diff\s+--check\b([^;&|\n]*)'
+message = "git diff --check ohne --cached: ungetrackte Dateien werden nicht geprüft."
+fix = "Erst stagen, dann den Index prüfen: git add -A && git diff --cached --check (oder git diff HEAD --check nach dem Stagen)."
+
+# Gegen den Index oder HEAD geprüft: nach dem Stagen ist die Datei enthalten.
+[[match.exclude]]
+group = 1
+pattern = '(^|\s)(--cached|--staged|HEAD)(\s|$)'
+
+[[fixtures]]
+name = "Prüfschritt auf eine neue Datei"
+expect = "fail"
+expect_finding_contains = "--cached"
+[fixtures.files]
+"scripts/gate.sh" = "#!/bin/sh\ngit diff --check src/neu.ts\n"
+
+[[fixtures]]
+name = "Workflow-Schritt ohne Stagen"
+expect = "fail"
+[fixtures.files]
+".github/workflows/ci.yml" = "jobs:\n  lint:\n    steps:\n      - run: git diff --check\n"
+
+[[fixtures]]
+name = "Gestagt und gegen den Index geprüft"
+expect = "pass"
+[fixtures.files]
+"scripts/gate.sh" = "#!/bin/sh\ngit add -A\ngit diff --cached --check\n"
+
+[[fixtures]]
+name = "--cached hinter --check"
+expect = "pass"
+[fixtures.files]
+"scripts/gate.sh" = "#!/bin/sh\ngit add -A && git diff --check --cached\n"
+
+[[fixtures]]
+name = "Zwei Aufrufe in einer Zeile sind ein Befund"
+expect = "fail"
+expect_findings = 1
+[fixtures.files]
+"scripts/gate.sh" = "git diff --check a.ts; git diff --check b.ts\n"
+
+[[fixtures]]
+name = "Zeilenumbruch zwischen diff und --check ist kein Treffer"
+expect = "pass"
+[fixtures.files]
+"scripts/gate.sh" = "git diff\n--check\n"
+
+[[fixtures]]
+name = "Seitenvorschub trennt Zeilen"
+expect = "fail"
+expect_findings = 1
+expect_finding_contains = "git diff --check neu.ts"
+[fixtures.files]
+"scripts/gate.sh" = "echo start\fgit diff --check neu.ts\n"

@@ -1,0 +1,21 @@
+name: Falsch-negativ
+description: Eine Hub-Regel übersieht einen echten Fehler
+labels: [false-negative]
+body:
+  - type: input
+    id: rule
+    attributes:
+      label: Regel-ID (hub.<paket>.<regel>) und Paketversion
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimaler Ausschnitt mit dem Fehler (wird zur fail-Fixture)
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: evidence
+    attributes:
+      label: Beleg, dass das ein Fehler ist (https-URL)

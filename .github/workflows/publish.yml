@@ -1,0 +1,66 @@
+name: publish
+
+# Baut aus packages/ die kanonischen Paketdateien, signiert jede mit Sigstore
+# (keyless, Identität = dieser Workflow auf main) und legt sie mit index.json
+# am Release `index` ab. Clients prüfen genau diese Identität:
+#   https://github.com/hehljo/ruttla-hub/.github/workflows/publish.yml@refs/heads/main
+# Eine veröffentlichte Version ist unveränderlich (`ruttla hub build --previous`).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Ruttla + sigstore installieren
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/hehljo/Ruttla/main/install.sh \
+            | RUTTLA_HOME="$RUNNER_TEMP/ruttla" RUTTLA_CHANNEL=nightly sh
+          "$RUNNER_TEMP/ruttla/venv/bin/python" -m pip install --quiet 'sigstore>=4.5,<5'
+          echo "$RUNNER_TEMP/ruttla/venv/bin" >> "$GITHUB_PATH"
+      # Dieselbe Aufnahmeprüfung wie im PR — veröffentlicht wird nur, was sie besteht.
+      - name: Gesund-Korpus holen
+        run: python scripts/fetch_corpus.py corpus.toml "$RUNNER_TEMP/corpus" > "$RUNNER_TEMP/corpus.args"
+      - name: Pakete prüfen
+        run: |
+          for d in packages/*/; do
+            ruttla hub check "$d" $(cat "$RUNNER_TEMP/corpus.args")
+          done
+      - name: Bisherigen Index holen
+        run: |
+          mkdir -p prev
+          if gh release view index >/dev/null 2>&1; then
+            gh release download index --pattern index.json --dir prev
+          fi
+      - name: Bauen
+        run: |
+          prev=()
+          [ -f prev/index.json ] && prev=(--previous prev/index.json)
+          ruttla hub build packages out "${prev[@]}"
+      - name: Signieren
+        run: |
+          for f in out/*.json; do
+            [ "$(basename "$f")" = index.json ] && continue
+            python -m sigstore sign --overwrite --bundle "$f.sigstore.json" "$f"
+          done
+      - name: Veröffentlichen
+        run: |
+          gh release view index >/dev/null 2>&1 || \
+            gh release create index --title "Paketindex" --latest=false \
+              --notes "Signierte Regelpakete für ruttla hub. Wird von publish.yml gepflegt."
+          gh release upload index out/* --clobber

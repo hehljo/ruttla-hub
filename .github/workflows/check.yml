@@ -1,0 +1,40 @@
+name: check
+
+# Aufnahmeprüfung jedes Pakets: Format · Konformitäts-Kit · Falsch-Positiv-Lauf
+# gegen den gepinnten Gesund-Korpus. Läuft mit Leserechten, ohne Geheimnisse —
+# auch für PRs aus Forks.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Ruttla installieren (Paket + Engine aus demselben Release)
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/hehljo/Ruttla/main/install.sh \
+            | RUTTLA_HOME="$RUNNER_TEMP/ruttla" RUTTLA_CHANNEL=nightly sh
+          echo "$RUNNER_TEMP/ruttla/venv/bin" >> "$GITHUB_PATH"
+      - name: Gesund-Korpus holen
+        run: python scripts/fetch_corpus.py corpus.toml "$RUNNER_TEMP/corpus" > "$RUNNER_TEMP/corpus.args"
+      - name: Pakete prüfen
+        run: |
+          shopt -s nullglob
+          dirs=(packages/*/)
+          if [ ${#dirs[@]} -eq 0 ]; then echo "keine Pakete — nichts geprüft"; exit 1; fi
+          status=0
+          for d in "${dirs[@]}"; do
+            echo "::group::$d"
+            ruttla hub check "$d" $(cat "$RUNNER_TEMP/corpus.args") || status=1
+            echo "::endgroup::"
+          done
+          exit $status

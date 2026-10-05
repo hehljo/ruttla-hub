@@ -1,0 +1,9 @@
+format = "ruttla-hub-package/0"
+name = "gitgates"
+version = "0.1.0"
+description = "Git-Prüfschritte, die still nichts prüfen — etwa git diff --check, das neue, ungetrackte Dateien nie sieht."
+evidence = [
+    "https://git-scm.com/docs/git-diff#Documentation/git-diff.txt-gitdiffltoptionsgt--ltpathgt82308203",
+    "https://git-scm.com/docs/git-diff#Documentation/git-diff.txt---check",
+]
+license = "Apache-2.0"

@@ -1,0 +1,17 @@
+# Gesund-Korpus für den Falsch-Positiv-Lauf (Schwelle: 0 Befunde).
+# Öffentliche Repos, je auf einen Commit gepinnt — ein Korpus, der sich
+# unbemerkt ändert, misst nicht mehr dasselbe. Eine Regel, die im ganzen
+# Korpus keine Datei prüft, ist dort nicht gemessen und wird nicht angenommen:
+# eine neue Plattform bringt ihr Korpus-Repo im selben PR mit.
+
+[[repo]]
+url = "https://github.com/nvm-sh/nvm"
+commit = "a8bb4974008be929325ae286335702f1a84c5854"
+
+[[repo]]
+url = "https://github.com/pallets/flask"
+commit = "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35"
+
+[[repo]]
+url = "https://github.com/tj/n"
+commit = "f52d2172f12cd76f0efe9524690723f52ab74f40"

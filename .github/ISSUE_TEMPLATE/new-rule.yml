@@ -1,0 +1,29 @@
+name: Neue Regel
+description: Ein belegter Fehlerfall, der ab jetzt ohne LLM abgefangen werden soll
+labels: [new-rule]
+body:
+  - type: input
+    id: evidence
+    attributes:
+      label: Beleg (https-URL)
+      description: Issue, Commit, Doku-Stelle oder Log, an dem der Fehler wirklich aufgetreten ist
+    validations:
+      required: true
+  - type: textarea
+    id: broken
+    attributes:
+      label: Kaputter Stand (wird zur fail-Fixture)
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: healthy
+    attributes:
+      label: Gesunder Stand (wird zur pass-Fixture)
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Wo könnte die Regel falsch anschlagen?
