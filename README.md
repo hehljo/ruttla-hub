@@ -11,9 +11,27 @@ ruttla .                     # lädt die Paketregeln offline, nur bei passendem 
 ruttla hub sync              # stellt nach einem Checkout den Stand des Lockfiles her
 ```
 
+Ein lokal verändertes Paket unter `.ruttla/hub/` überschreiben `add`, `sync`
+und `remove` nie still: sie brechen ab und nennen es; `--force` sichert es
+vorher nach `.ruttla/backup/`.
+
 `hub add` und `hub sync` brauchen `sigstore` (`pip install 'ruttla[hub]'`
 oder `python -m pip install 'sigstore>=4.5,<5'` in Ruttlas venv). Ohne bricht
 der Befehl ab — ungeprüft wird nichts installiert.
+
+## Eigene Regeln — erst im Projekt, dann für alle
+
+1. Paket im eigenen Projekt anlegen: `.ruttla/packages/<name>/` in genau der
+   Form unten. Jeder Scan dort lädt es sofort mit; kein `hub`-Befehl und kein
+   `ruttla update` fasst es an.
+2. `ruttla hub submit <name>` prüft Format und Konformitäts-Kit, gleicht die
+   Version mit dem Index ab und zeigt, was eingereicht würde — gesendet wird
+   nichts.
+3. `ruttla hub submit <name> --yes` legt den PR an (braucht `git` und `gh`;
+   ohne Schreibrecht über einen Fork).
+4. Nach Review und Merge signiert die CI das Paket. Danach `ruttla hub add
+   <name>` und die lokale Kopie löschen — sonst bricht der Scan ab, weil
+   dasselbe Paket zweimal vorliegt.
 
 ## Aufnahme
 

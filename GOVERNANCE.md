@@ -8,7 +8,12 @@
 | Das installierte Paket ist das signierte | Hash im `ruttla-hub.lock`; jede Abweichung bricht den Scan ab (Exit 3) |
 | Eine Version ändert sich nie | `ruttla hub build --previous` lehnt geänderten Inhalt unter bekannter Version ab |
 | Eine Regel ist geprüft | Konformitäts-Kit + Falsch-Positiv-Lauf in der CI vor dem Signieren |
+| Lokale Änderungen gehen nicht verloren | `add`/`sync`/`remove` brechen bei einem veränderten Paket in `.ruttla/hub/` ab; `--force` sichert es vorher nach `.ruttla/backup/` |
 | Es wird kein Code installiert | Pakete sind JSON mit Regeltexten; Ruttla-Python-Plugins sind über den Hub nicht installierbar |
+
+Eigene Pakete unter `.ruttla/packages/` sind unsigniert — sie stehen auf
+derselben Vertrauensstufe wie das Lockfile: wer das Repo schreibt, schreibt
+auch sie. Für alle verfügbar werden sie erst über einen PR hier.
 
 **Nicht** versprochen: dass eine Regel fachlich recht hat. Das entscheidet das
 Review. Und das Lockfile schützt nicht vor einem böswilligen Prüfziel — wer
