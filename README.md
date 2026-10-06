@@ -1,69 +1,71 @@
 # ruttla-hub
 
-Regelpakete für [Ruttla](https://github.com/hehljo/Ruttla) — geprüft, signiert,
-reine Daten. Ein Paket installiert keinen Code: seine Regeln laufen in der
-linearzeitigen Ruttla-Engine, und ein Scan bleibt offline.
+Rule packages for [Ruttla](https://github.com/hehljo/Ruttla) — reviewed,
+signed, pure data. A package installs no code: its rules run in Ruttla's
+linear-time engine, and a scan stays offline.
+
+> German version: [README.de.md](README.de.md).
 
 ```bash
 ruttla hub search git
-ruttla hub add gitgates      # prüft Signatur + Hash, schreibt ruttla-hub.lock
-ruttla .                     # lädt die Paketregeln offline, nur bei passendem Hash
-ruttla hub sync              # stellt nach einem Checkout den Stand des Lockfiles her
+ruttla hub add gitgates      # verifies signature + hash, writes ruttla-hub.lock
+ruttla .                     # loads the package rules offline, only on a matching hash
+ruttla hub sync              # restores the lockfile state after a checkout
 ```
 
-Ein lokal verändertes Paket unter `.ruttla/hub/` überschreiben `add`, `sync`
-und `remove` nie still: sie brechen ab und nennen es; `--force` sichert es
-vorher nach `.ruttla/backup/`.
+`add`, `sync` and `remove` never silently overwrite a locally modified
+package under `.ruttla/hub/`: they abort and name it; `--force` backs it up to
+`.ruttla/backup/` first.
 
-`hub add` und `hub sync` brauchen `sigstore` (`pip install 'ruttla[hub]'`
-oder `python -m pip install 'sigstore>=4.5,<5'` in Ruttlas venv). Ohne bricht
-der Befehl ab — ungeprüft wird nichts installiert.
+`hub add` and `hub sync` need `sigstore` (`pip install 'ruttla[hub]'` or
+`python -m pip install 'sigstore>=4.5,<5'` in Ruttla's venv). Without it the
+command aborts — nothing is installed unverified.
 
-## Eigene Regeln — erst im Projekt, dann für alle
+## Your own rules — first in the project, then for everyone
 
-1. Paket im eigenen Projekt anlegen: `.ruttla/packages/<name>/` in genau der
-   Form unten. Jeder Scan dort lädt es sofort mit; kein `hub`-Befehl und kein
-   `ruttla update` fasst es an.
-2. `ruttla hub submit <name>` prüft Format und Konformitäts-Kit, gleicht die
-   Version mit dem Index ab und zeigt, was eingereicht würde — gesendet wird
-   nichts.
-3. `ruttla hub submit <name> --yes` legt den PR an (braucht `git` und `gh`;
-   ohne Schreibrecht über einen Fork).
-4. Nach Review und Merge signiert die CI das Paket. Danach `ruttla hub add
-   <name>` und die lokale Kopie löschen — sonst bricht der Scan ab, weil
-   dasselbe Paket zweimal vorliegt.
+1. Create the package in your own project: `.ruttla/packages/<name>/` in
+   exactly the layout below. Every scan there loads it immediately; no `hub`
+   command and no `ruttla update` touches it.
+2. `ruttla hub submit <name>` checks the format and the conformance kit,
+   compares the version with the index and shows what would be submitted —
+   nothing is sent.
+3. `ruttla hub submit <name> --yes` opens the PR (needs `git` and `gh`; via a
+   fork without write access).
+4. After review and merge, CI signs the package. Then run `ruttla hub add
+   <name>` and delete the local copy — otherwise the scan aborts because the
+   same package is present twice.
 
-## Aufnahme
+## Admission
 
-Ein Paket ist ein Verzeichnis `packages/<name>/`:
+A package is a directory `packages/<name>/`:
 
 ```text
 packages/<name>/package.toml
-packages/<name>/rules/<plattform>/hub.<name>.<regel>.toml
+packages/<name>/rules/<platform>/hub.<name>.<rule>.toml
 ```
 
-`package.toml` trägt `format = "ruttla-hub-package/0"`, `name`, `version`,
-`description`, `evidence` (https-URLs auf den belegten Fehlerfall) und
-`license`. Das Regelformat ist `ruttla-rule/0`
+`package.toml` carries `format = "ruttla-hub-package/0"`, `name`, `version`,
+`description`, `evidence` (https URLs pointing to the documented failure) and
+`license`. The rule format is `ruttla-rule/0`
 ([RULE_FORMAT.md](https://github.com/hehljo/Ruttla/blob/main/docs/RULE_FORMAT.md)).
 
-Lokal genau so prüfen wie die CI:
+Check locally exactly like CI does:
 
 ```bash
-python scripts/fetch_corpus.py corpus.toml /tmp/korpus > /tmp/korpus.args
-ruttla hub check packages/<name> $(cat /tmp/korpus.args)
+python scripts/fetch_corpus.py corpus.toml /tmp/corpus > /tmp/corpus.args
+ruttla hub check packages/<name> $(cat /tmp/corpus.args)
 ```
 
-Angenommen wird nur, was alle drei Schritte besteht — jeder läuft, auch wenn
-ein anderer ablehnt:
+Only what passes all three steps is accepted — each one runs, even when
+another rejects:
 
-| Schritt | Lehnt ab |
+| Step (as printed) | Rejects |
 |---|---|
-| `format` | fehlender Beleg, ID außerhalb von `hub.<name>.`, Pfad ≠ `<plattform>/<id>.toml`, unbekannte Felder |
-| `kit` | alles, was `ruttla rule test` ablehnt: Schema, Fixtures, Wirksamkeit, Laufzeitbudget |
-| `falsch-positiv` | jeder Befund im gepinnten Gesund-Korpus (`corpus.toml`, Schwelle 0). Eine Regel, die dort keine Datei prüft, ist *nicht gemessen* und wird nicht angenommen |
+| `format` | missing evidence, ID outside `hub.<name>.`, path ≠ `<platform>/<id>.toml`, unknown fields |
+| `kit` | everything `ruttla rule test` rejects: schema, fixtures, effectiveness, runtime budget |
+| `falsch-positiv` | any finding in the pinned healthy corpus (`corpus.toml`, threshold 0). A rule that examines no file there is *not measured* and is not accepted |
 
-Eine veröffentlichte Version ist unveränderlich: dieselbe Version mit anderem
-Inhalt bricht den Build ab. Jede Änderung braucht eine neue Version.
+A published version is immutable: the same version with different content
+fails the build. Every change needs a new version.
 
-Siehe [GOVERNANCE.md](GOVERNANCE.md) für Review und Vertrauensgrenzen.
+See [GOVERNANCE.md](GOVERNANCE.md) for review and trust boundaries.
